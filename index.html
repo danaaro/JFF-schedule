@@ -523,6 +523,151 @@
       .tab-weekday { font-size: 10px; }
       .cal-film-title { display: none; }
     }
+
+    /* ── Admin ───────────────────────────────────────────── */
+    .edit-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid #999;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      cursor: pointer;
+      letter-spacing: .03em;
+    }
+    .edit-btn.active { background: #222; color: #fff; border-color: #222; }
+
+    .admin-add-btn {
+      display: none;
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      border: 2px dashed #aaa;
+      border-radius: 6px;
+      background: none;
+      color: #666;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .admin-add-btn:hover { border-color: #555; color: #222; }
+    body.admin-mode .admin-add-btn { display: block; }
+
+    .delete-btn {
+      display: none;
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(180,0,0,.75);
+      color: #fff;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+    body.admin-mode .delete-btn { display: flex; }
+    .screening-card { position: relative; }
+
+    .save-fab {
+      display: none;
+      position: fixed;
+      bottom: 24px; right: 20px;
+      padding: 12px 22px;
+      background: #1a7a1a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,.25);
+      z-index: 1000;
+      letter-spacing: .02em;
+    }
+    .save-fab:hover { background: #156015; }
+    .save-fab.saving { background: #888; cursor: not-allowed; }
+    body.admin-mode .save-fab { display: block; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 2000;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #e8e8e8;
+      border-radius: 14px 14px 0 0;
+      padding: 24px 20px 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 16px; color: #111;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .form-row.full { grid-template-columns: 1fr; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #666; }
+    .form-field input, .form-field select, .form-field textarea {
+      padding: 8px 10px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      font-size: 13px;
+      background: #f8f8f8;
+      color: #111;
+      font-family: inherit;
+    }
+    .form-field input:focus, .form-field select:focus {
+      outline: none; border-color: #666; background: #fff;
+    }
+    .fetch-row {
+      display: flex; gap: 8px; align-items: flex-end;
+      margin-bottom: 10px;
+    }
+    .fetch-row .form-field { flex: 1; }
+    .fetch-btn {
+      padding: 8px 14px; font-size: 12px; font-weight: 600;
+      border: 1px solid #999; border-radius: 5px;
+      background: #ddd; color: #333; cursor: pointer;
+      white-space: nowrap; height: 36px;
+    }
+    .fetch-btn:hover { background: #ccc; }
+    .form-actions {
+      display: flex; gap: 10px; margin-top: 18px;
+    }
+    .btn-primary {
+      flex: 1; padding: 11px; background: #222; color: #fff;
+      border: none; border-radius: 6px; font-size: 14px;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-primary:hover { background: #000; }
+    .btn-cancel {
+      padding: 11px 18px; background: none; color: #555;
+      border: 1px solid #bbb; border-radius: 6px;
+      font-size: 14px; cursor: pointer;
+    }
+    .token-hint {
+      font-size: 11px; color: #888; margin-top: 6px; line-height: 1.5;
+    }
+    .setup-modal .modal { border-radius: 14px; max-height: 80vh; margin: auto; }
+    .setup-modal { align-items: center; }
   </style>
 </head>
 <body>
@@ -531,6 +676,7 @@
   <div class="header-top">
     <h1>JFF 2026</h1>
     <span class="subtitle">Jerusalem Film Festival · July 9–19</span>
+    <button class="edit-btn" id="editBtn" onclick="toggleAdmin()">Edit</button>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
 </header>
@@ -562,10 +708,7 @@
 </main>
 
 <script>
-// ── DATA ────────────────────────────────────────────────────────
-// Add / edit screenings here. Each entry: { time, title, venue, duration, note, type }
-// type: "jff" | "personal" | "work"
-
+// ── DATA START ───────────────────────────────────────────────────
 const schedule = {
   "2026-07-09": [
     { time: "20:00", title: "Tell Me Everything", venue: "Sultan's Pool", duration: 109, note: "Opening Night", type: "jff", priority: true },
@@ -608,6 +751,7 @@ const schedule = {
     { time: "16:45", title: "Barrio Triste", venue: "Cinematheque 2", duration: 88, type: "jff", note: "Backup" },
   ],
 };
+// ── DATA END ─────────────────────────────────────────────────────
 
 // ── HELPERS ──────────────────────────────────────────────────────
 
@@ -718,20 +862,22 @@ function renderDay() {
 
   if (sorted.length === 0) {
     content.innerHTML = `
-      <div class="empty-day">
-        No screenings added for this day yet.
-      </div>`;
+      <div class="empty-day">No screenings added for this day yet.</div>
+      <button class="admin-add-btn" onclick="openAddModal('${activeDay}')">+ Add Event</button>`;
     return;
   }
 
+  const originalEvents = events; // keep ref for delete index lookup
   content.innerHTML = `
     <div class="timeline">
-      ${sorted.map(ev => {
+      ${sorted.map((ev, sortedIdx) => {
+        const origIdx = originalEvents.indexOf(ev);
         const endTime = ev.duration ? addMinutes(ev.time, ev.duration) : null;
         const isPersonal = ev.type === "personal" || ev.type === "work";
         const isIndustry = ev.type === "industry";
         return `
           <div class="screening-card${isPersonal ? " personal-card" : ""}${isIndustry ? " industry-card" : ""}${ev.priority ? " priority-card" : ""}">
+            <button class="delete-btn" onclick="deleteEvent('${activeDay}', ${origIdx})" title="Remove">✕</button>
             <div class="time-block">
               <div class="time-main">${ev.time}</div>
               ${endTime ? `<div class="time-end">→ ${endTime}</div>` : ""}
@@ -756,7 +902,8 @@ function renderDay() {
             </div>
           </div>`;
       }).join("")}
-    </div>`;
+    </div>
+    <button class="admin-add-btn" onclick="openAddModal('${activeDay}')">+ Add Event</button>`;
 }
 
 function selectDay(day) {
@@ -835,6 +982,326 @@ if (DAYS.includes(today)) activeDay = today;
 
 renderTabs();
 renderDay();
+
+// ── ADMIN ─────────────────────────────────────────────────────────
+
+const ADMIN_PASS = 'jff2026';
+const VENUES = ["Sultan's Pool","Cinematheque 1","Cinematheque 2","Cinematheque 3","Cinematheque 4","Lev Smadar","Sam Shpiegel","MediaTek","Beer Sheva"];
+document.getElementById('venueList').innerHTML = VENUES.map(v => `<option value="${v}">`).join('');
+
+let adminMode = false;
+
+function toggleAdmin() {
+  if (!adminMode) {
+    const pass = prompt('Admin password:');
+    if (pass !== ADMIN_PASS) { alert('Wrong password'); return; }
+    // First time: ask for GitHub token
+    if (!localStorage.getItem('gh_token')) {
+      openSetup();
+      return;
+    }
+    enterAdmin();
+  } else {
+    exitAdmin();
+  }
+}
+
+function enterAdmin() {
+  adminMode = true;
+  document.body.classList.add('admin-mode');
+  document.getElementById('editBtn').classList.add('active');
+  document.getElementById('editBtn').textContent = '✓ Editing';
+  renderDay();
+}
+
+function exitAdmin() {
+  adminMode = false;
+  document.body.classList.remove('admin-mode');
+  document.getElementById('editBtn').classList.remove('active');
+  document.getElementById('editBtn').textContent = 'Edit';
+  renderDay();
+}
+
+// Delete an event
+function deleteEvent(dateStr, idx) {
+  if (!confirm('Remove this event?')) return;
+  schedule[dateStr].splice(idx, 1);
+  renderDay();
+}
+
+// Open add-event modal for a given date
+function openAddModal(dateStr) {
+  document.getElementById('formDate').value = dateStr;
+  document.getElementById('formTime').value = '';
+  document.getElementById('formTitle').value = '';
+  document.getElementById('formUrl').value = '';
+  document.getElementById('formVenue').value = '';
+  document.getElementById('formDuration').value = '';
+  document.getElementById('formType').value = 'jff';
+  document.getElementById('formPriority').checked = false;
+  document.getElementById('formNote').value = '';
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+function submitAddEvent() {
+  const dateStr = document.getElementById('formDate').value;
+  const time    = document.getElementById('formTime').value.trim();
+  const title   = document.getElementById('formTitle').value.trim();
+  const venue   = document.getElementById('formVenue').value.trim();
+  const dur     = document.getElementById('formDuration').value;
+  const type    = document.getElementById('formType').value;
+  const priority = document.getElementById('formPriority').checked;
+  const note    = document.getElementById('formNote').value.trim();
+
+  if (!time || !title) { alert('Time and title are required'); return; }
+
+  const ev = { time, title, venue, duration: dur ? parseInt(dur) : null, type };
+  if (priority) ev.priority = true;
+  if (note) ev.note = note;
+
+  if (!schedule[dateStr]) schedule[dateStr] = [];
+  schedule[dateStr].push(ev);
+  schedule[dateStr].sort((a, b) => a.time.localeCompare(b.time));
+
+  closeAddModal();
+  renderDay();
+}
+
+// Fetch event details from JFF URL via CORS proxy
+async function fetchJffUrl() {
+  const url = document.getElementById('formUrl').value.trim();
+  if (!url) return;
+  const btn = document.querySelector('.fetch-btn');
+  btn.textContent = 'Fetching…';
+  btn.disabled = true;
+  try {
+    const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const html = await fetch(proxy).then(r => r.text());
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Try to extract title
+    const titleEl = doc.querySelector('h1, .movie-title, [class*="title"]');
+    if (titleEl) document.getElementById('formTitle').value = titleEl.textContent.trim();
+
+    // Try duration
+    const text = doc.body.innerText || doc.body.textContent;
+    const durMatch = text.match(/(\d{2,3})\s*(?:min|דקות)/i);
+    if (durMatch) document.getElementById('formDuration').value = durMatch[1];
+
+    btn.textContent = 'Fetched';
+  } catch(e) {
+    btn.textContent = 'Failed — fill manually';
+  }
+  btn.disabled = false;
+}
+
+// Setup modal (GitHub token)
+function openSetup() {
+  document.getElementById('setupModal').classList.add('open');
+}
+
+function closeSetup() {
+  document.getElementById('setupModal').classList.remove('open');
+}
+
+function saveToken() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    alert('Token should start with ghp_ or github_pat_');
+    return;
+  }
+  localStorage.setItem('gh_token', token);
+  closeSetup();
+  enterAdmin();
+}
+
+// Serialize schedule back to JS source
+function serializeSchedule() {
+  const lines = ['const schedule = {'];
+  for (const [date, events] of Object.entries(schedule)) {
+    if (events.length === 0) {
+      lines.push(`  "${date}": [],`);
+    } else {
+      lines.push(`  "${date}": [`);
+      for (const ev of events) {
+        const parts = [`time: "${ev.time}"`, `title: ${JSON.stringify(ev.title)}`,
+          `venue: ${JSON.stringify(ev.venue || '')}`,
+          `duration: ${ev.duration === null || ev.duration === undefined ? 'null' : ev.duration}`,
+          `type: "${ev.type}"`];
+        if (ev.priority) parts.push('priority: true');
+        if (ev.note) parts.push(`note: ${JSON.stringify(ev.note)}`);
+        lines.push(`    { ${parts.join(', ')} },`);
+      }
+      lines.push('  ],');
+    }
+  }
+  lines.push('};');
+  return lines.join('\n');
+}
+
+// Save to GitHub
+async function saveToGithub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) { openSetup(); return; }
+
+  const fab = document.getElementById('saveFab');
+  fab.textContent = 'Saving…';
+  fab.classList.add('saving');
+
+  try {
+    // GET current file to obtain SHA
+    const meta = await fetch('https://api.github.com/repos/danaaro/JFF-schedule/contents/index.html', {
+      headers: { Authorization: `token ${token}` }
+    }).then(r => r.json());
+
+    if (meta.message) throw new Error(meta.message);
+
+    // Decode, splice in new schedule, re-encode
+    const current = atob(meta.content.replace(/\n/g, ''));
+    const newSchedule = serializeSchedule();
+    const updated = current.replace(
+      /\/\/ ── DATA START ───.*?\/\/ ── DATA END ─────/s,
+      `// ── DATA START ───────────────────────────────────────────────────\n${newSchedule}\n// ── DATA END ─────────────────────────────────────────────────────`
+    );
+
+    // Encode to base64
+    const encoded = btoa(unescape(encodeURIComponent(updated)));
+
+    // PUT updated file
+    const result = await fetch('https://api.github.com/repos/danaaro/JFF-schedule/contents/index.html', {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Update schedule via admin panel',
+        content: encoded,
+        sha: meta.sha
+      })
+    }).then(r => r.json());
+
+    if (result.commit) {
+      fab.textContent = '✓ Saved — deploying…';
+      setTimeout(() => { fab.textContent = 'Save to GitHub'; fab.classList.remove('saving'); }, 4000);
+    } else {
+      throw new Error(result.message || 'Unknown error');
+    }
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    fab.textContent = 'Save to GitHub';
+    fab.classList.remove('saving');
+  }
+}
 </script>
+
+<!-- Add Event Modal -->
+<div class="modal-overlay" id="addModal" onclick="if(event.target===this)closeAddModal()">
+  <div class="modal">
+    <h3>Add Event</h3>
+
+    <div class="fetch-row">
+      <div class="form-field">
+        <label>JFF URL (optional — auto-fills details)</label>
+        <input type="url" id="formUrl" placeholder="https://jff.org.il/he/movie/…" />
+      </div>
+      <button class="fetch-btn" onclick="fetchJffUrl()">Fetch</button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Date</label>
+        <select id="formDate">
+          <option value="2026-07-09">Thu Jul 9</option>
+          <option value="2026-07-10">Fri Jul 10</option>
+          <option value="2026-07-11">Sat Jul 11</option>
+          <option value="2026-07-12">Sun Jul 12</option>
+          <option value="2026-07-13">Mon Jul 13</option>
+          <option value="2026-07-14">Tue Jul 14</option>
+          <option value="2026-07-15">Wed Jul 15</option>
+          <option value="2026-07-16">Thu Jul 16</option>
+          <option value="2026-07-17">Fri Jul 17</option>
+          <option value="2026-07-18">Sat Jul 18</option>
+          <option value="2026-07-19">Sun Jul 19</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Time</label>
+        <input type="text" id="formTime" placeholder="20:00" pattern="\d{2}:\d{2}" />
+      </div>
+    </div>
+
+    <div class="form-row full">
+      <div class="form-field">
+        <label>Title</label>
+        <input type="text" id="formTitle" placeholder="Film or event name" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Venue</label>
+        <input type="text" id="formVenue" list="venueList" placeholder="Cinematheque 1" />
+        <datalist id="venueList"></datalist>
+      </div>
+      <div class="form-field">
+        <label>Duration (min)</label>
+        <input type="number" id="formDuration" placeholder="90" min="1" max="600" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Type</label>
+        <select id="formType">
+          <option value="jff">JFF Film</option>
+          <option value="personal">Personal</option>
+          <option value="industry">Industry</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Note / badge</label>
+        <input type="text" id="formNote" placeholder="Backup, Closed…" />
+      </div>
+    </div>
+
+    <div class="form-row full">
+      <div class="form-field" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" id="formPriority" style="width:16px;height:16px;" />
+        <label for="formPriority" style="text-transform:none;font-size:13px;letter-spacing:0;">★ Priority pick</label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitAddEvent()">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Modal (GitHub token) -->
+<div class="modal-overlay setup-modal" id="setupModal" onclick="if(event.target===this)closeSetup()">
+  <div class="modal" style="border-radius:14px;max-width:460px;margin:auto;">
+    <h3>Connect to GitHub</h3>
+    <div class="form-field">
+      <label>GitHub Personal Access Token</label>
+      <input type="password" id="ghToken" placeholder="ghp_… or github_pat_…" />
+    </div>
+    <p class="token-hint">
+      Create at github.com → Settings → Developer settings → Personal access tokens → Fine-grained.<br>
+      Required permission: <strong>Contents → Read &amp; Write</strong> on the JFF-schedule repo.
+    </p>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeSetup()">Cancel</button>
+      <button class="btn-primary" onclick="saveToken()">Save &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Save Button -->
+<button class="save-fab" id="saveFab" onclick="saveToGithub()">Save to GitHub</button>
+
 </body>
 </html>
